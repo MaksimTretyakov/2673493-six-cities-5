@@ -3,9 +3,15 @@ import { ICommandHandler } from './command-handler.interface.js';
 import chalk from 'chalk';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ILogger } from '../shared/libs/logger/index.js';
+import { injectable, inject } from 'inversify';
+import { Component } from '../shared/types/index.js';
 
+@injectable()
 export class VersionCommand implements ICommandHandler {
   public readonly name = '--version';
+
+  constructor(@inject(Component.Logger) private readonly logger: ILogger) {}
 
   private getVersion(): string {
     const currentFilePath = fileURLToPath(import.meta.url);
@@ -16,6 +22,6 @@ export class VersionCommand implements ICommandHandler {
 
   public async execute(): Promise<void> {
     const version = this.getVersion();
-    console.log(chalk.blue.bold(version));
+    this.logger.info(chalk.blue.bold(version));
   }
 }

@@ -55,3 +55,5 @@ export type Comment = {
   rating: number;
   user: User;
 };
+
+export * from './component.enum.js';

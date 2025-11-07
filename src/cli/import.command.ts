@@ -3,12 +3,18 @@ import { ICommandHandler } from './command-handler.interface.js';
 import type { User, Offer, City, HousingType, Amenity, UserType} from '../shared/types';
 import chalk from 'chalk';
 import { createInterface } from 'node:readline';
+import { ILogger } from '../shared/libs/logger/index.js';
+import { injectable, inject } from 'inversify';
+import { Component } from '../shared/types/index.js';
 
+@injectable()
 export class ImportCommand implements ICommandHandler {
   public readonly name = '--import';
 
+  constructor(@inject(Component.Logger) private readonly logger: ILogger) {}
+
   private printOffer(offer: Offer) {
-    console.log(`
+    this.logger.info(`
       ${chalk.cyan.bold('Имя:')} ${offer.name}
       ${chalk.cyan.bold('Описание:')} ${offer.description}
       ${chalk.cyan.bold('Дата публикации:')} ${offer.publicationDate}
@@ -88,7 +94,7 @@ export class ImportCommand implements ICommandHandler {
     const [filepath] = params;
 
     if (!filepath) {
-      console.log(chalk.red('Не указан путь к файлу. Используйте: --import <filepath>'));
+      this.logger.warn('Не указан путь к файлу. Используйте: --import <filepath>');
       return;
     }
 
@@ -107,11 +113,11 @@ export class ImportCommand implements ICommandHandler {
     });
 
     readStream.on('error', (error) => {
-      console.log(chalk.red(`Не удалось прочитать файл с данными. Ошибка: ${error.message}`));
+      this.logger.error(`Не удалось прочитать файл с данными. Ошибка: ${error.message}`, error);
     });
 
     rl.on('close', () => {
-      console.log(chalk.green('Импорт данных успешно завершен.'));
+      this.logger.info(chalk.green('Импорт данных успешно завершен.'));
     });
   }
 }
