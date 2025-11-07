@@ -1,27 +1,31 @@
-#!/usr/bin/env node
+import 'reflect-metadata';
+import { ICommandHandler } from './cli/command-handler.interface.js';
 import { HelpCommand } from './cli/help.command.js';
 import { VersionCommand } from './cli/version.command.js';
 import { ImportCommand } from './cli/import.command.js';
 import { GenerateCommand } from './cli/generate.command.js';
-import { ICommandHandler } from './cli/command-handler.interface.js';
+import { Container } from 'inversify';
+import { Application } from './app/application.js';
+import { ILogger, PinoLogger } from './shared/libs/logger/index.js';
+import { IConfig, RestConfig, RestSchema } from './shared/libs/config/index.js';
+import { Component } from './shared/types/index.js';
+import { execSync } from 'node:child_process';
 
-class CLIApp {
-  private commands: Record<string, ICommandHandler>;
-  constructor() {
-    this.commands = {
-      '--help': new HelpCommand(),
-      '--version': new VersionCommand(),
-      '--import': new ImportCommand(),
-      '--generate': new GenerateCommand(),
-    };
+async function bootstrap() {
+  if (process.platform === 'win32') {
+    execSync('chcp 65001');
   }
+  const container = new Container();
+  container.bind<Application>(Component.Application).to(Application).inSingletonScope();
+  container.bind<ILogger>(Component.Logger).to(PinoLogger).inSingletonScope();
+  container.bind<IConfig<RestSchema>>(Component.Config).to(RestConfig).inSingletonScope();
+  container.bind<ICommandHandler>(Component.HelpCommand).to(HelpCommand).inSingletonScope();
+  container.bind<ICommandHandler>(Component.VersionCommand).to(VersionCommand).inSingletonScope();
+  container.bind<ICommandHandler>(Component.ImportCommand).to(ImportCommand).inSingletonScope();
+  container.bind<ICommandHandler>(Component.GenerateCommand).to(GenerateCommand).inSingletonScope();
 
-  public async processCommand(argv: string[]): Promise<void> {
-    const [,, commandName, ...params] = argv;
-    const command = this.commands[commandName] ?? this.commands['--help'];
-    await command.execute(...params);
-  }
+  const application = container.get<Application>(Component.Application);
+  await application.init();
 }
 
-const cliApp = new CLIApp();
-cliApp.processCommand(process.argv);
+bootstrap();

@@ -1,6 +1,6 @@
 export function getRandomNumber(min: number, max: number, precision = 0): number {
-  const factor = Math.pow(10, precision);
-  return Math.floor((Math.random() * (max - min + 1) + min) * factor) / factor;
+  const randomValue = Math.random() * (max - min) + min;
+  return parseFloat(randomValue.toFixed(precision));
 }
 
 export function getRandomItem<T>(items: T[]): T {

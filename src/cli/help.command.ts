@@ -1,10 +1,17 @@
 import { ICommandHandler } from './command-handler.interface.js';
 import chalk from 'chalk';
+import { ILogger } from '../shared/libs/logger/index.js';
+import { injectable, inject } from 'inversify';
+import { Component } from '../shared/types/index.js';
 
+@injectable()
 export class HelpCommand implements ICommandHandler {
   public readonly name = '--help';
+
+  constructor(@inject(Component.Logger) private readonly logger: ILogger) {}
+
   public async execute(): Promise<void> {
-    console.log(`
+    this.logger.info(`
       ${chalk.bold('Программа для подготовки данных для REST API сервера.')}
 
       ${chalk.yellow('Пример:')}

@@ -4,11 +4,15 @@ import { Amenity, HousingType, Offer, User } from '../shared/types/index.js';
 import chalk from 'chalk';
 import { createWriteStream, type WriteStream } from 'node:fs';
 import { CITIES_COORDINATES, getRandomItem, getRandomNumber } from '../shared/libs/utils.js';
+import { ILogger } from '../shared/libs/logger/index.js';
+import { injectable, inject } from 'inversify';
+import { Component } from '../shared/types/index.js';
 
 type MockServerOffer = Omit<Offer, 'publicationDate'> & {
   publicationDate: string;
 };
 
+@injectable()
 export class GenerateCommand implements ICommandHandler {
   public readonly name = '--generate';
   private initialData: MockServerOffer[] = [];
@@ -18,6 +22,8 @@ export class GenerateCommand implements ICommandHandler {
   private types: HousingType[] = [];
   private amenities: Amenity[][] = [];
   private hosts: User[] = [];
+
+  constructor(@inject(Component.Logger) private readonly logger: ILogger) {}
 
   private getRandomBoolean(): boolean {
     return Math.random() > 0.5;
@@ -47,7 +53,7 @@ export class GenerateCommand implements ICommandHandler {
     const price = getRandomNumber(100, 100000);
     const amenities = getRandomItem(this.amenities).join(',');
     const host: User = getRandomItem(this.hosts);
-    const hostData = [host.name, host.email, host.avatarSrc ?? '', host.password, host.type].join(';'); // Добавил ?? '' для надежности
+    const hostData = [host.name, host.email, host.avatarSrc ?? '', host.password, host.type].join(';');
     const commentsCount = 0;
     const coordinates = `${CITIES_COORDINATES[city as keyof typeof CITIES_COORDINATES].latitude};${CITIES_COORDINATES[city as keyof typeof CITIES_COORDINATES].longitude}`;
 
@@ -59,12 +65,12 @@ export class GenerateCommand implements ICommandHandler {
   }
 
   private async write(count: number, writer: WriteStream): Promise<void> {
-    const baseOffer = getRandomItem(this.initialData);
-    if (!baseOffer) {
+    if (this.initialData.length === 0) {
       return;
     }
 
     for (let i = 0; i < count; i++) {
+      const baseOffer = getRandomItem(this.initialData);
       const offerLine = this.generateOffer(baseOffer);
       const isWritten = writer.write(`${offerLine}\n`);
       if (!isWritten) {
@@ -77,8 +83,8 @@ export class GenerateCommand implements ICommandHandler {
     try {
       const { data } = await axios.get<MockServerOffer[]>(url);
       this.initialData = data;
-    } catch {
-      console.log(chalk.red(`Не удалось загрузить данные из ${url}`));
+    } catch (error) {
+      this.logger.error(`Не удалось загрузить данные из ${url}`, error as Error);
       throw new Error('Data loading failed');
     }
   }
@@ -88,7 +94,7 @@ export class GenerateCommand implements ICommandHandler {
     const count = Number.parseInt(countStr, 10);
 
     if (isNaN(count) || !filepath || !url) {
-      console.log(chalk.red('Неверные параметры. Использование: --generate <n> <filepath> <url>'));
+      this.logger.warn('Неверные параметры. Использование: --generate <n> <filepath> <url>');
       return;
     }
 
@@ -102,11 +108,11 @@ export class GenerateCommand implements ICommandHandler {
       });
 
       await this.write(count, writeStream);
-      console.log(chalk.green(`Файл ${filepath} успешно сгенерирован.`));
+      this.logger.info(chalk.green(`Файл ${filepath} успешно сгенерирован.`));
 
     } catch (error) {
       if (error instanceof Error) {
-        console.log(chalk.red(`Не удалось сгенерировать данные: ${error.message}`));
+        this.logger.error(`Не удалось сгенерировать данные: ${error.message}`, error);
       }
     }
   }
