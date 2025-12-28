@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { ICommandHandler } from './command-handler.interface.js';
-import type { User, Offer, City, HousingType, Amenity, UserType} from '../shared/types';
+import type { User, Offer, City, HousingType, Amenity, UserType} from '../shared/types/index.js';
 import chalk from 'chalk';
 import { createInterface } from 'node:readline';
 import { ILogger } from '../shared/libs/logger/index.js';
