@@ -1,7 +1,7 @@
-import { defaultClasses, getModelForClass, prop, modelOptions, Ref } from '@typegoose/typegoose';
+import { defaultClasses, getModelForClass, prop, modelOptions } from '@typegoose/typegoose';
 import { Amenity, City, HousingType } from '../../types/index.js';
-import { UserEntity } from '../user/user.entity.js';
 import { CoordinatesEntity } from '../coordinates/coordinates.entity.js';
+import { Types } from 'mongoose';
 
 export interface OfferEntity extends defaultClasses.Base {}
 
@@ -57,8 +57,8 @@ export class OfferEntity extends defaultClasses.TimeStamps {
   })
   public amenities!: Amenity[];
 
-  @prop({ required: true, ref: () => UserEntity })
-  public host!: Ref<UserEntity>;
+  @prop({ required: true, ref: () => 'UserEntity' })
+  public host!: Types.ObjectId;
 
   @prop({ default: 0 })
   public commentsCount!: number;

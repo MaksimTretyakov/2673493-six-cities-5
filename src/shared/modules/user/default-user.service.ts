@@ -5,6 +5,8 @@ import { CreateUserDto } from './dto/create-user.dto.js';
 import { inject, injectable } from 'inversify';
 import { Component } from '../../types/index.js';
 import { ILogger } from '../../libs/logger/index.js';
+import { LoginUserDto } from './dto/login-user.dto.js';
+import { OfferEntity } from '../offer/offer.entity.js';
 
 @injectable()
 export class DefaultUserService implements IUserService {
@@ -19,11 +21,12 @@ export class DefaultUserService implements IUserService {
 
     const result = await this.userModel.create(user);
     this.logger.info(`New user created: ${user.email}`);
-    return result as any;
+
+    return result as unknown as DocumentType<UserEntity>;
   }
 
   public async findByEmail(email: string): Promise<DocumentType<UserEntity> | null> {
-    return this.userModel.findOne({email});
+    return this.userModel.findOne({email}).exec() as unknown as Promise<DocumentType<UserEntity> | null>;
   }
 
   public async findOrCreate(dto: CreateUserDto, salt: string): Promise<DocumentType<UserEntity>> {
@@ -34,5 +37,40 @@ export class DefaultUserService implements IUserService {
     }
 
     return this.create(dto, salt);
+  }
+
+  public async findById(userId: string): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel.findById(userId).exec() as unknown as Promise<DocumentType<UserEntity> | null>;
+  }
+
+  public async verifyUser(dto: LoginUserDto, salt: string): Promise<DocumentType<UserEntity> | null> {
+    const user = await this.findByEmail(dto.email);
+
+    if (!user) {
+      return null;
+    }
+
+    if (user.verifyPassword(dto.password, salt)) {
+      return user;
+    }
+
+    return null;
+  }
+
+  public async addToFavorites(userId: string, offerId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, { $addToSet: { favorites: offerId } }).exec();
+  }
+
+  public async removeFromFavorites(userId: string, offerId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, { $pull: { favorites: offerId } }).exec();
+  }
+
+  public async getFavorites(userId: string): Promise<DocumentType<OfferEntity>[]> {
+    const user = await this.userModel
+      .findById(userId)
+      .populate('favorites')
+      .exec();
+
+    return (user?.favorites as unknown as DocumentType<OfferEntity>[]) ?? [];
   }
 }
